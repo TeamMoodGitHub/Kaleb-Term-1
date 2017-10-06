@@ -3,7 +3,8 @@ import time
 import threading, imutils, os, cv2, requests
 from mss import mss 
 import numpy as np
-from PIL import Image, ImageTk
+import PIL.Image
+from PIL import ImageTk
 from tkinter import *
 from tkinter.ttk import *
 from win32api import GetSystemMetrics as GSM
@@ -116,23 +117,23 @@ class Application(Frame):
                 
         def threadedLoop():
             """this is where the output should be"""
-            Top,Left,Width,Height,templates=mapLocate()
+            Top,Left,Width,Height,templates=mapLocate()            
             try:
                 while not self.stopEvent.is_set():
-                    mon,self.frame=screenGrab(top=Top,left=Left,width=Width,height=Height)
-                    image=cv2.cvtColor(self.frame,cv2.COLOR_BGR2RGB)
-                    #image=Image.fromarray(image)
-                    image=ImageTk.PhotoImage(image)
+                    monitor={'top':Top,'left':Left,'width':Width,'height':Height}
+                    sct_img=sct.grab(monitor)
+                    image=PIL.Image.frombytes('RGB',sct_img.size,sct_img.rgb)
+                    image=ImageTk.PhotoImage(image,)
                     if self.panel is None:
                         self.panel = Label(image=image)
                         self.panel.image = image
-                        self.panel.pack(side='right',padx=0,pady=0)
+                        self.panel.pack(side='left',expand=1)
                     else:
                         self.panel.configure(image=image)
                         self.panel.image = image
                         
             except RuntimeError:
-                print('caught a runtime error') 
+                self.stopEvent.is_set()
         threadedLoop()
 
     def client_exit(self):
