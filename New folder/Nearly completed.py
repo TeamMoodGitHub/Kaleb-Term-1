@@ -22,7 +22,7 @@ class Application(Frame):
         self.stopEvent=None
         self.panel=None
         self.init_window()
-
+        self.team=None
         
         
         
@@ -68,15 +68,30 @@ class Application(Frame):
         ##########
         quitButton=Button(self, text="Quit",
                           command=self.client_exit)
-        quitButton.place(x=525,y=20)
+        quitButton.place(x=450,y=20)
+        STOPButton=Button(self, text="Stop",
+                          command=self.stop_thread)
+        STOPButton.place(x=525,y=20)
+        
         
         
         
         outButton=Button(self, text="BEGIN",
                          command=self.begin)
         outButton.place(x=600,y=20)
-    def vidFeed(self):
+    def stop_thread(self):
+        print("[INFO] closing thread...")
+        try:
+            if not self.stopEvent.is_set():
+                self.stopEvent.is_set()
+                print ('[INFO] Thread Closed')
+            else:
+                print('No current thread exists')
+        except AttributeError:
+            pass
         
+        
+    def vidFeed(self):
         def screenGrab(**mon):
             """Gathers screen info and returns it"""
             img=np.array(sct.grab(mon))
@@ -122,15 +137,33 @@ class Application(Frame):
                 
         def threadedLoop():
             """this is where the output should be"""
-            Top,Left,Width,Height,templates=mapLocate()            
+            Top,Left,Width,Height,templates=mapLocate()
+            tempList=[]
+            if self.team == True:
+                for i in self.nameList[0:5]:
+                    tempList.append(cv2.imread('Champions/'+i+'Square.png',0))
+                    print(i)
+            if self.team == False:
+                for i in self.nameList[5:10]:
+                    tempList.append(cv2.imread('Champions/'+i+'Square.png',0))
+                    print(i)
             try:
                 while not self.stopEvent.is_set():
                     monitor={'top':Top,'left':Left,'width':Width,'height':Height}
                     sct_img=sct.grab(monitor)
-                    
+                    img=np.array(sct_img)
+                    img2=img.copy()   
+                    img2=cv2.cvtColor(img2,cv2.COLOR_BGR2GRAY)                                     
                     ###This is where the MIA SEARCH CODE Should go###
-                    
-                    image=PIL.Image.frombytes('RGB',sct_img.size,sct_img.rgb)
+                    for i in tempList:
+                        res,tl,br=matching(img2,i)
+                        if res >=0.60:        
+                            cv2.rectangle(img,tl,br,200,2)
+                        else:
+                            pass
+                    img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+                    image=PIL.Image.fromarray(img)
+                    #image=PIL.Image.frombytes('RGB',img.size,img.rgb)
                     image=ImageTk.PhotoImage(image,)
                     
                     
@@ -146,11 +179,24 @@ class Application(Frame):
                 print('[INFO] Thread Closed')
                 self.stopEvent.is_set()
                 root.destroy
+        def matching(img, template):
+            """a catch all matching sequence"""
+            try:
+                template=imutils.resize(template,width=20 )
+                w,h=template.shape[::-1]
+                res=cv2.matchTemplate(img,template,cv2.TM_CCOEFF_NORMED)
+                min_val,max_val,min_loc,max_loc=cv2.minMaxLoc(res)
+                top_left=max_loc
+                bottom_right=(top_left[0]+w,top_left[1]+h)
+                return max_val, top_left,bottom_right
+            except AttributeError:
+                self.panel = Label(text='NO CHAMPIONS FOUND')
+                self.stopEvent.is_set()
+                
         threadedLoop()
 
     def client_exit(self):
-    		# set the stop event, cleanup the camera, and allow the rest of
-		# the quit process to continue
+    	#Quit the thread, and close the window. 
         print("[INFO] closing...")
         try:
             
@@ -175,18 +221,31 @@ class Application(Frame):
             URL='https://'+reigon+'.api.riotgames.com/lol/spectator/v3/active-games/by-summoner/'+str(ID)+'?api_key='+APIKey
             response=requests.get(URL)
             IGResponse=response.json()
+            status=None
             try:
+                
                 if IGResponse['status']['status_code'] == 404:
                     print('got stuck on status 404!')
-                    return None
+                    self.panel = Label(self,text='GAME NOT FOUND', font=("Helvetica", 18)).grid(row=11,sticky=W)                  
+
+                    status=404
+                    return None,status
+                elif IGResponse['status']['status_code'] == 429:
+                    print('Rate Limit Exceeded')
+                    self.panel = Label(self,text='API KEY RATE LIMIT EXCEEDED, TRY AGAIN IN 2 MINUTES.', font=("Helvetica", 18)).grid(row=11,sticky=W) 
+                    status=403
+                    return None,status
                 elif IGResponse['status']['status_code'] == 403:
                     print('got stuck on status 403!')
-                    return None
+                    self.panel = Label(self,text='API KEY EXPIRED', font=("Helvetica", 18)).grid(row=11,sticky=W) 
+    
+                    status=403
+                    return None,status
             except KeyError:
                 pass
             print('got to IGR!')
             #print(IGResponse)
-            return IGResponse
+            return IGResponse, status
         def requestSummonerID(reigon,summonerName,APIKey):
             URL= 'https://'+reigon+'.api.riotgames.com/lol/summoner/v3/summoners/by-name/'+summonerName+'?api_key='+APIKey
             response= requests.get(URL)
@@ -209,40 +268,47 @@ class Application(Frame):
         summonerName=self.name.get()
         APIKey=self.key.get()
         ID=requestSummonerID(reigon,summonerName,APIKey)
-        champlist=requestInGameInfo(reigon,ID,APIKey)
+        champlist, status=requestInGameInfo(reigon,ID,APIKey)
         y=champlist
         x=[]
         summonerList=[]
         count =0
-        team=None
+        self.team=None
         if champlist != None:
             for i in y['participants']:
                 x.append(i['championId'])
             for i in y['participants']:
                 summonerList.append(i['summonerName'])
-                if summonerName== i['summonerName']:
+                if summonerName.upper()== i['summonerName'].upper():
                     if count <= 4:
-                        team=True
+                        self.team=True
                         print('im team blue!')
                     else:
-                        team=False
+                        self.team=False
                         print('im team red!')
                 else:
-                    if team == True or team == False:
+                    if self.team == True or self.team == False:
                         pass
                     else:
                         count+=1
                         print(count)
-        nameList=requestChampionNames(reigon,APIKey,x)
-        
-        self.stopEvent = threading.Event()
-        self.thread = threading.Thread(target=self.vidFeed, args=())
-        self.thread.start()              
+        self.nameList=requestChampionNames(reigon,APIKey,x)
+        if status != 404 or status != 403 or status != 429:
+            self.stopEvent = threading.Event()
+            self.thread = threading.Thread(target=self.vidFeed, args=())
+            self.thread.start()
+        else:
+            if status == 404:
+                print('Game not found!')
+            if status == 403:
+                print('API Key Expired.')
+            if status == 429:
+                print('rate limit exceeded, please wait 2 minutes.')
+            else:
+                pass
         
         #######
-# Okay, so here is where the hard part begins. You have all the info to start the loop and pull your pictures, the __init__ has threading initialized, so you just have to 
-#invoke and begin your window in the corner of your screen.
-        #nameList has your champions in a list, count holds where the players position is, team True means blue, team False means red
+# LISTEN HERE YOU LITTLE SHIT YOU BETTER START WORKING SO HELP ME I WILL DELETE YOU YOU PEICE OF TRASH CODE I SWEAR TO FUCKING GOD I WILL END YOU
             
 
 root=Tk()
