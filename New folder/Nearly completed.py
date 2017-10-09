@@ -114,7 +114,7 @@ class Application(Frame):
                 while not self.stopEvent.is_set():
                     mon,img=screenGrab(top=Top,left=Left,width=Width,height=Height)
                     img2=img.copy()
-                    img2=cv2.cvtColor(img2,cv2.COLOR_BGR2GRAY)
+                    #img2=cv2.cvtColor(img2,cv2.COLOR_BGR2GRAY)
                     res=[]
                     for i in templates:
                         x=cv2.matchTemplate(img2,i,cv2.TM_CCOEFF_NORMED)
@@ -154,12 +154,14 @@ class Application(Frame):
                     img=np.array(sct_img)
                     img2=img.copy()   
                     img2=cv2.cvtColor(img2,cv2.COLOR_BGR2GRAY)                                     
-                    ###This is where the MIA SEARCH CODE Should go###
+                    ###This is the template match for champion icons.###
                     for i in tempList:
                         res,tl,br=matching(img2,i)
-                        if res >=0.60:        
+                        
+                        if res >=0.55:        
                             cv2.rectangle(img,tl,br,200,2)
                         else:
+                            print(res)
                             pass
                     img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
                     image=PIL.Image.fromarray(img)
@@ -184,6 +186,8 @@ class Application(Frame):
             try:
                 template=imutils.resize(template,width=20 )
                 w,h=template.shape[::-1]
+                #img=cv2.threshold(img,255,cv2.THRESH_BINARY)
+                #template=cv2.threshold(template,127,255,cv2.THRESH_BINARY)
                 res=cv2.matchTemplate(img,template,cv2.TM_CCOEFF_NORMED)
                 min_val,max_val,min_loc,max_loc=cv2.minMaxLoc(res)
                 top_left=max_loc
@@ -308,11 +312,10 @@ class Application(Frame):
                 pass
         
         #######
-# LISTEN HERE YOU LITTLE SHIT YOU BETTER START WORKING SO HELP ME I WILL DELETE YOU YOU PEICE OF TRASH CODE I SWEAR TO FUCKING GOD I WILL END YOU
             
-
-root=Tk()
-
-root.geometry('680x600')
-app = Application(root)
-root.mainloop()
+if __name__ == '__main__':
+    root=Tk()
+    
+    root.geometry('680x600')
+    app = Application(root)
+    root.mainloop()
