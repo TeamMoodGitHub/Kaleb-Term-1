@@ -29,7 +29,7 @@ class Application(Frame):
         
         
     def init_window(self):
-        self.master.title('Testing')
+        self.master.title('TrackMap')
         self.pack(fill=BOTH,expand=1)
         
         self.v=StringVar()
