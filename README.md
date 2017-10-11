@@ -15,25 +15,39 @@ While loading in, use that time to input your reigon, Summoner Name, and API Key
 1.)Install python, and use pip to install the following modules:
 OpenCV
 ```python 
- pip install opencv-python```
+ pip install opencv-python
+```
+
 MSS
 ```python 
- pip install MSS```
+ pip install MSS
+```
+
 Python Image Library or PIL
 ```python 
- pip install PIL```
+ pip install PIL
+```
+
 Numpy
 ```python 
- pip install numpy```
+ pip install numpy
+
+```
+
 image utilitys or imutils
 ```python 
- pip install imutils```
+ pip install imutils
+```
+
 threading
 ```python 
- pip install threading```
+ pip install threading
+```
+
 requests
 ```python 
- pip install requests```
+ pip install requests
+```
 
 2.) Clone this Git repository and run MapTrack.py
 
