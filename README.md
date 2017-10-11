@@ -10,7 +10,7 @@ While loading in, use that time to input your reigon, Summoner Name, and API Key
 
 ![](https://imgur.com/ed0U45Z.png)
 
-#Installation
+## Installation
 
 1.)Install python, and use pip to install the following modules:
 OpenCV
